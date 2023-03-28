@@ -47,6 +47,10 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
+  pages: {
+    signIn: "/auth/signin",
+    verifyRequest: "/auth/verify-request", // (used for check email message)
+  },
   adapter: PrismaAdapter(prisma),
   providers: [
     GithubProvider({
