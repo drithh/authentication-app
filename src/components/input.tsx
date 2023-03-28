@@ -13,6 +13,7 @@ interface Props {
   value?: string;
   readOnly?: boolean;
   defaultValue?: string;
+  width?: string;
 }
 
 const Input: FC<Props> = ({
@@ -20,14 +21,14 @@ const Input: FC<Props> = ({
   name,
   placeholder = "",
   required = false,
-  border = "",
   label = "",
   onChange,
   value,
   readOnly = false,
   defaultValue,
+  width = "w-full",
 }) => (
-  <div className="flex w-full flex-col gap-2">
+  <div className={`flex flex-col gap-2 ${width}`}>
     <label htmlFor={name} className="mb-0 flex w-full text-left">
       {label}
     </label>

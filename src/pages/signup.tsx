@@ -7,18 +7,19 @@ import {
   AiOutlineTwitter,
 } from "react-icons/ai";
 import type { ReactNode } from "react";
-export default function SignIn() {
+export default function SignUp() {
   return (
     <Layout>
       <h1 className="mb-8 text-center text-5xl font-bold uppercase tracking-tight text-slate-700">
-        Sign in to your account
+        Sign up for an account
       </h1>
       <div className="flex w-[40rem] flex-col items-center justify-center gap-8 place-self-center border-y-2 border-slate-500 p-8">
         <div className="mb-4 flex w-full flex-col gap-y-4">
           <Input name="email" label="Email" />
           <Input name="password" label="Password" type="password" />
+          <Input name="password" label="Confirm Password" type="password" />
         </div>
-        <Button type="submit">Sign in</Button>
+        <Button type="submit">Sign up</Button>
         <div className="relative flex h-[2px] w-full place-content-center place-items-center bg-slate-200">
           <div className="absolute bg-white px-4">Or continue with</div>
         </div>
