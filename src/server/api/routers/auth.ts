@@ -5,6 +5,7 @@ import {
   publicProcedure,
   // protectedProcedure,
 } from "~/server/api/trpc";
+import bcrypt from "bcryptjs";
 
 export const authRouter = createTRPCRouter({
   signUp: publicProcedure
@@ -101,21 +102,16 @@ export const authRouter = createTRPCRouter({
         throw new Error("Password too weak, please try another");
       }
 
+      // hash the password
+      const hashedPassword = await bcrypt.hash(input.password, 10);
+
       const user = await ctx.prisma.user.create({
         data: {
           name: input.name,
           email: input.email,
-          password: input.password,
+          password: hashedPassword,
         },
       });
       return user;
-    }),
-
-  hello: publicProcedure
-    .input(z.object({ text: z.string() }))
-    .query(({ input }) => {
-      return {
-        greeting: `Hello ${input.text}`,
-      };
     }),
 });

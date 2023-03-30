@@ -15,21 +15,19 @@ import type {
 import { getServerSession } from "next-auth";
 import { authOptions } from "~/server/auth";
 import { useState } from "react";
+import { toast } from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import signInFunction from "~/components/signin";
 
 export default function SignIn({
   csrfToken,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  const router = useRouter();
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    const data = await signIn("credentials", {
-      email,
-      password,
-      redirect: true,
-      callbackUrl: "/",
-    });
-    console.log(data);
+    e.preventDefault();
+    await signInFunction(email, password, router);
   };
 
   return (
@@ -39,7 +37,9 @@ export default function SignIn({
       </h1>
       <form
         method="post"
-        onSubmit={() => handleSubmit}
+        onSubmit={(e) => {
+          void handleSubmit(e);
+        }}
         className="flex w-[40rem] flex-col items-center justify-center gap-8 place-self-center border-y-2 border-slate-500 p-8"
       >
         <div className="mb-4 flex w-full flex-col gap-y-4">

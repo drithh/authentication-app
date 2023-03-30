@@ -12,7 +12,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { env } from "~/env.mjs";
 import { prisma } from "~/server/db";
-
+import bcrypt from "bcryptjs";
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
  * object and keep type safety.
@@ -59,29 +59,27 @@ export const authOptions: NextAuthOptions = {
     // },
 
     jwt: ({ token, user }) => {
-      console.log("JWT()");
-      if (user) {
+      if (user && user.email && user.name) {
         token.id = user.id;
         token.email = user.email;
         token.username = user.name;
       }
-      console.table(token);
-      console.table(user);
+      // console.table(token);
+      // console.table(user);
       return token;
     },
     session({ session, token }) {
-      console.log("SESSION()");
-      if (token) {
-        // session.user.name = token.username;
+      if (session?.user?.name && typeof token?.username === "string") {
+        session.user.name = token.username;
       }
-      console.table(session);
-      console.table(token);
+      // console.table(session);
+      // console.table(token);
       return session;
     },
   },
 
   pages: {
-    // signIn: "/signin",
+    signIn: "/signin",
     verifyRequest: "/verify-request", // (used for check email message)
   },
   adapter: PrismaAdapter(prisma),
@@ -113,41 +111,23 @@ export const authOptions: NextAuthOptions = {
             email: credentials.email,
           },
         });
-        if (user) {
+
+        if (!user || !user.password) {
+          throw new Error("Email is not registered");
+        }
+        // compare password with bcrypt
+        const isPasswordCorrect = await bcrypt.compare(
+          credentials.password,
+          user.password
+        );
+
+        if (isPasswordCorrect) {
           return user;
         } else {
-          return null;
+          throw new Error("Invalid password, try again");
         }
       },
     }),
-    // CredentialsProvider({
-    //   name: "signup",
-    //   credentials: {
-    //     name: { label: "Name", type: "text" },
-    //     email: { label: "Email", type: "text" },
-    //     password: { label: "Password", type: "password" },
-    //     passwordConfirmation: {
-    //       label: "Password Confirmation",
-    //       type: "password",
-    //     },
-    //   },
-    //   authorize(credentials) {
-    //     return {
-    //       id: "1",
-    //       name: "Test User",
-    //     };
-    //     // const user = await prisma.user.findUnique({
-    //     //   where: {
-    //     //     email: credentials.email,
-    //     //   },
-    //     // });
-    //     // if (user) {
-    //     //   return user;
-    //     // } else {
-    //     //   return null;
-    //     // }
-    //   },
-    // }),
 
     // EmailProvider({
     //   server: {

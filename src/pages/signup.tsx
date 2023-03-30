@@ -8,49 +8,39 @@ import {
   AiOutlineTwitter,
 } from "react-icons/ai";
 import { api } from "~/utils/api";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 import { getCsrfToken, signIn } from "next-auth/react";
 import { getServerSession } from "next-auth";
 import type { GetServerSidePropsContext } from "next";
 import AuthButton from "~/components/auth-button";
 import { authOptions } from "~/server/auth";
+import { useRouter } from "next/navigation";
+import signInFunction from "~/components/signin";
 
 export default function SignUp() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const router = useRouter();
 
-  // const signUp = api.auth.signUp.useMutation();
-
+  const signUp = api.auth.signUp.useMutation();
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    void signIn("signup", {
-      redirect: false,
-      name,
-      email,
-      password,
-      confirmPassword,
-    });
 
-    // console.log("submitting", { name, email, password, confirmPassword });
-    // signUp.mutate(
-    //   { name, email, password, confirmPassword },
-    //   {
-    //     onError: (error) => {
-    //       toast.error(error.message);
-    //     },
-    //     onSuccess: (data) => {
-    //       toast.success("Account created successfully");
-    //       toast.success("Check your email for a confirmation link");
-    //       await signIn("credentials", {
-    //         redirect: false,
-    //         email,
-    //         password,
-    //       });
-    //     },
-    //   }
-    // );
+    signUp.mutate(
+      { name, email, password, confirmPassword },
+      {
+        onError: (error) => {
+          toast.error(error.message);
+        },
+        onSuccess: () => {
+          toast.success("Account created successfully");
+          toast.success("Check your email for a confirmation link");
+          signInFunction(email, password, router);
+        },
+      }
+    );
   };
 
   return (
