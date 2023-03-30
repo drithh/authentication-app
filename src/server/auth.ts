@@ -7,6 +7,8 @@ import {
 import GithubProvider from "next-auth/providers/github";
 import TwitterProvider from "next-auth/providers/twitter";
 import GoogleProvider from "next-auth/providers/google";
+import EmailProvider from "next-auth/providers/email";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { env } from "~/env.mjs";
 import { prisma } from "~/server/db";
@@ -38,18 +40,49 @@ declare module "next-auth" {
  * @see https://next-auth.js.org/configuration/options
  */
 export const authOptions: NextAuthOptions = {
+  session: {
+    strategy: "jwt",
+  },
   callbacks: {
-    session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
-        // session.user.role = user.role; <-- put other properties on the session here
+    // session({ session, user }) {
+    //   console.log("session callback", { session, user });
+    //   if (session.user) {
+    //     session.user.id = user.id;
+    //     // session.user.role = user.role; <-- put other properties on the session here
+    //   }
+    //   return session;
+    // },
+
+    // jwt({ token, user }) {
+    //   console.log("jwt callback", { token, user });
+    //   return { ...token, ...user };
+    // },
+
+    jwt: ({ token, user }) => {
+      console.log("JWT()");
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.username = user.name;
       }
+      console.table(token);
+      console.table(user);
+      return token;
+    },
+    session({ session, token }) {
+      console.log("SESSION()");
+      if (token) {
+        // session.user.name = token.username;
+      }
+      console.table(session);
+      console.table(token);
       return session;
     },
   },
+
   pages: {
-    signIn: "/auth/signin",
-    verifyRequest: "/auth/verify-request", // (used for check email message)
+    // signIn: "/signin",
+    verifyRequest: "/verify-request", // (used for check email message)
   },
   adapter: PrismaAdapter(prisma),
   providers: [
@@ -65,6 +98,68 @@ export const authOptions: NextAuthOptions = {
       clientId: env.GOOGLE_CLIENT_ID,
       clientSecret: env.GOOGLE_CLIENT_SECRET,
     }),
+    CredentialsProvider({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials || !credentials.email || !credentials.password) {
+          return null;
+        }
+        const user = await prisma.user.findUnique({
+          where: {
+            email: credentials.email,
+          },
+        });
+        if (user) {
+          return user;
+        } else {
+          return null;
+        }
+      },
+    }),
+    // CredentialsProvider({
+    //   name: "signup",
+    //   credentials: {
+    //     name: { label: "Name", type: "text" },
+    //     email: { label: "Email", type: "text" },
+    //     password: { label: "Password", type: "password" },
+    //     passwordConfirmation: {
+    //       label: "Password Confirmation",
+    //       type: "password",
+    //     },
+    //   },
+    //   authorize(credentials) {
+    //     return {
+    //       id: "1",
+    //       name: "Test User",
+    //     };
+    //     // const user = await prisma.user.findUnique({
+    //     //   where: {
+    //     //     email: credentials.email,
+    //     //   },
+    //     // });
+    //     // if (user) {
+    //     //   return user;
+    //     // } else {
+    //     //   return null;
+    //     // }
+    //   },
+    // }),
+
+    // EmailProvider({
+    //   server: {
+    //     host: env.EMAIL_SERVER_HOST,
+    //     port: env.EMAIL_SERVER_PORT,
+    //     auth: {
+    //       user: env.EMAIL_SERVER_USER,
+    //       pass: env.EMAIL_SERVER_PASSWORD,
+    //     },
+    //   },
+    //   from: env.EMAIL_FROM,
+    // }),
 
     /**
      * ...add more providers here.

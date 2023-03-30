@@ -1,8 +1,11 @@
 import Head from "next/head";
 import Link from "next/link";
+import { signIn, useSession } from "next-auth/react";
 import type { PropsWithChildren } from "react";
 
 const Layout = (props: PropsWithChildren) => {
+  const { data: sessionData } = useSession();
+  console.log(sessionData);
   return (
     <>
       <Head>
@@ -20,18 +23,29 @@ const Layout = (props: PropsWithChildren) => {
               Authentication App
             </Link>
             <div className="flex gap-6">
-              <Link
-                className="hover:text-blue-500 hover:underline"
-                href="/signin"
-              >
-                Sign in
-              </Link>
-              <Link
-                className="hover:text-blue-500 hover:underline"
-                href="/signup"
-              >
-                Sign up
-              </Link>
+              {sessionData ? (
+                <Link
+                  className="uppercase hover:text-blue-500 hover:underline"
+                  href="/profile"
+                >
+                  {sessionData.user.name}
+                </Link>
+              ) : (
+                <>
+                  <button
+                    className="uppercase hover:text-blue-500 hover:underline"
+                    onClick={() => void signIn()}
+                  >
+                    Sign in
+                  </button>
+                  <Link
+                    className="uppercase hover:text-blue-500 hover:underline"
+                    href="/signup"
+                  >
+                    Sign up
+                  </Link>
+                </>
+              )}
             </div>
           </nav>
         </header>
@@ -43,7 +57,7 @@ const Layout = (props: PropsWithChildren) => {
             <p>
               Made with{" "}
               <span role="img" aria-label="love">
-                ❤️
+                💀
               </span>{" "}
               by{" "}
               <Link
