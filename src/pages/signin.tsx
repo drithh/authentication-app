@@ -1,6 +1,5 @@
 import Button from "~/components/button";
 import Input from "~/components/input";
-import Layout from "~/components/layout";
 import { getCsrfToken, signIn } from "next-auth/react";
 import {
   AiOutlineGithub,
@@ -30,7 +29,7 @@ export default function SignIn({
   };
 
   return (
-    <Layout>
+    <>
       <h1 className="mb-8 text-center text-5xl font-bold uppercase tracking-tight text-slate-700">
         Sign in to your account
       </h1>
@@ -76,7 +75,7 @@ export default function SignIn({
           />
         </div>
       </form>
-    </Layout>
+    </>
   );
 }
 

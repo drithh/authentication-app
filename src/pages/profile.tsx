@@ -3,19 +3,26 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import type { GetServerSidePropsContext } from "next/types";
 import { useEffect, useState } from "react";
-import Layout from "~/components/layout";
 import { authOptions } from "~/server/auth";
 import { GoTriangleDown } from "react-icons/go";
+import { type NextPage } from "next";
+import Button from "~/components/button";
+import { signOut } from "next-auth/react";
+import { api } from "~/utils/api";
+import toast from "react-hot-toast";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
 
-export default function Page() {
+dayjs.extend(relativeTime);
+
+const Profile: NextPage = () => {
   const [is2FA, setIs2FA] = useState(false);
   const [show2FA, setShow2FA] = useState(false);
-
+  const resendVerificationEmail =
+    api.auth.resendVerificationEmail.useMutation();
   const { data: session } = useSession();
   const router = useRouter();
-  // if (!session) {
-  // return;
-  // }
+
   useEffect(() => {
     if (!session) {
       router.push("/signin");
@@ -26,8 +33,31 @@ export default function Page() {
     return null;
   }
 
+  const resendEmail = () => {
+    const email = session.user.email;
+    if (!email) {
+      toast.error("No email found");
+      return;
+    }
+    resendVerificationEmail.mutate(
+      {
+        email,
+      },
+      {
+        onError: (error) => {
+          toast.error(error.message);
+        },
+        onSuccess: () => {
+          toast.success("Verification email sent");
+        },
+      }
+    );
+  };
+
+  console.log(session);
+
   return (
-    <Layout>
+    <>
       <h1 className="my-8 mb-8 text-center text-5xl font-bold uppercase tracking-tight text-slate-700">
         Welcome to your account
       </h1>
@@ -45,13 +75,20 @@ export default function Page() {
           </p>
         </div>
         <div className="flex w-full place-content-between ">
-          <p className="text-justify text-xl text-slate-700">isVerified:</p>
+          <p className="text-justify text-xl text-slate-700">Verified At:</p>
           {session.user.emailVerified ? (
-            <p className="text-justify text-xl text-slate-700">Yes</p>
+            <p className="text-justify text-xl text-slate-700">
+              {/* convert emailverified to relative time */}
+              {dayjs(session.user.emailVerified).fromNow()}
+              {/* {session.user.emailVerified.toString()} */}
+            </p>
           ) : (
             <div className="flex flex-col place-items-end">
               <p className="text-justify text-xl  text-slate-700 ">No</p>
-              <button className="text-justify  text-slate-700 hover:text-blue-500 hover:underline">
+              <button
+                className="text-justify  text-slate-700 hover:text-blue-500 hover:underline"
+                onClick={resendEmail}
+              >
                 Resend Verification Email
               </button>
             </div>
@@ -105,10 +142,13 @@ export default function Page() {
             </div>
           )}
         </div>
+        <Button type="button" onClick={() => void signOut()}>
+          Sign out
+        </Button>
       </div>
-    </Layout>
+    </>
   );
-}
+};
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   return {
@@ -117,3 +157,5 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
     },
   };
 }
+
+export default Profile;

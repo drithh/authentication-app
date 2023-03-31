@@ -23,13 +23,14 @@ declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
       id: string;
-      emailVerified: Date | null;
+      emailVerified: string | null;
       // ...other properties
       // role: UserRole;
     } & DefaultSession["user"];
   }
 
   // interface User {
+  //   emailVerified: string;
   //   // ...other properties
   //   // role: UserRole;
   // }
@@ -45,35 +46,30 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    // session({ session, user }) {
-    //   console.log("session callback", { session, user });
-    //   if (session.user) {
-    //     session.user.id = user.id;
-    //     // session.user.role = user.role; <-- put other properties on the session here
-    //   }
-    //   return session;
-    // },
-
-    // jwt({ token, user }) {
-    //   console.log("jwt callback", { token, user });
-    //   return { ...token, ...user };
-    // },
-
     jwt: ({ token, user }) => {
       if (user && user.email && user.name) {
         token.id = user.id;
         token.email = user.email;
         token.username = user.name;
       }
+      // console.log("jwt, token");
       // console.table(token);
+      // console.log("jwt, user");
       // console.table(user);
       return token;
     },
-    session({ session, token }) {
+    session: async ({ session, token }) => {
+      const user = await prisma.user.findUnique({
+        where: {
+          email: token.email as string,
+        },
+      });
+
       if (session?.user?.name && typeof token?.username === "string") {
         session.user.name = token.username;
+        session.user.emailVerified = user?.emailVerified?.toString() || null;
       }
-      // console.table(session);
+      console.table(session);
       // console.table(token);
       return session;
     },
@@ -129,18 +125,6 @@ export const authOptions: NextAuthOptions = {
         }
       },
     }),
-
-    // EmailProvider({
-    //   server: {
-    //     host: env.EMAIL_SERVER_HOST,
-    //     port: env.EMAIL_SERVER_PORT,
-    //     auth: {
-    //       user: env.EMAIL_SERVER_USER,
-    //       pass: env.EMAIL_SERVER_PASSWORD,
-    //     },
-    //   },
-    //   from: env.EMAIL_FROM,
-    // }),
 
     /**
      * ...add more providers here.

@@ -27,7 +27,7 @@ const Layout = (props: PropsWithChildren) => {
                   className="uppercase hover:text-blue-500 hover:underline"
                   href="/profile"
                 >
-                  {sessionData.user.name}
+                  Profile
                 </Link>
               ) : (
                 <>

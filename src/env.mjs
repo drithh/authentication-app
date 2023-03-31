@@ -7,10 +7,7 @@ import { z } from "zod";
 const server = z.object({
   DATABASE_URL: z.string().url(),
   NODE_ENV: z.enum(["development", "test", "production"]),
-  NEXTAUTH_SECRET:
-    process.env.NODE_ENV === "production"
-      ? z.string().min(1)
-      : z.string().min(1).optional(),
+  NEXTAUTH_SECRET: z.string().min(1),
   NEXTAUTH_URL: z.preprocess(
     // This makes Vercel deployments not fail if you don't set NEXTAUTH_URL
     // Since NextAuth.js automatically uses the VERCEL_URL if present.
@@ -19,12 +16,17 @@ const server = z.object({
     process.env.VERCEL ? z.string().min(1) : z.string().url()
   ),
   // Add `.min(1) on ID and SECRET if you want to make sure they're not empty
-  GITHUB_CLIENT_ID: z.string(),
-  GITHUB_CLIENT_SECRET: z.string(),
-  TWITTER_CLIENT_ID: z.string(),
-  TWITTER_CLIENT_SECRET: z.string(),
-  GOOGLE_CLIENT_ID: z.string(),
-  GOOGLE_CLIENT_SECRET: z.string(),
+  GITHUB_CLIENT_ID: z.string().min(1),
+  GITHUB_CLIENT_SECRET: z.string().min(1),
+  TWITTER_CLIENT_ID: z.string().min(1),
+  TWITTER_CLIENT_SECRET: z.string().min(1),
+  GOOGLE_CLIENT_ID: z.string().min(1),
+  GOOGLE_CLIENT_SECRET: z.string().min(1),
+
+  EMAIL_HOST: z.string().min(1),
+  EMAIL_PORT: z.number().min(1),
+  EMAIL_USERNAME: z.string().min(1),
+  EMAIL_PASSWORD: z.string().min(1),
 });
 
 /**
@@ -52,6 +54,10 @@ const processEnv = {
   TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+  EMAIL_HOST: process.env.EMAIL_HOST,
+  EMAIL_PORT: parseInt(process.env.EMAIL_PORT),
+  EMAIL_USERNAME: process.env.EMAIL_USERNAME,
+  EMAIL_PASSWORD: process.env.EMAIL_PASSWORD,
   // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
 };
 

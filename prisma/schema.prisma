@@ -54,7 +54,7 @@ model User {
     name          String
     password      String?
     email         String?   @unique
-    emailVerified DateTime?
+    emailVerified DateTime @default(now())
     image         String?
     accounts      Account[]
     sessions      Session[]

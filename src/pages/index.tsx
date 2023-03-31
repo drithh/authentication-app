@@ -1,9 +1,8 @@
 import { type NextPage } from "next";
-import Layout from "~/components/layout";
 
 const Home: NextPage = () => {
   return (
-    <Layout>
+    <>
       <div className="mt-[-5rem] flex h-full w-full flex-col place-content-center place-self-start">
         <h1 className="mb-8 w-full text-center text-5xl font-bold uppercase tracking-tight text-slate-700">
           Authentication App
@@ -22,7 +21,7 @@ const Home: NextPage = () => {
           </p>
         </div>
       </div>
-    </Layout>
+    </>
   );
 };
 

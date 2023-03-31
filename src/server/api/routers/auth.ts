@@ -6,7 +6,9 @@ import {
   // protectedProcedure,
 } from "~/server/api/trpc";
 import bcrypt from "bcryptjs";
-
+import { sendEmail } from "~/server/libs/sendEmail";
+import { env } from "~/env.mjs";
+import jwt from "jsonwebtoken";
 export const authRouter = createTRPCRouter({
   signUp: publicProcedure
     .input(
@@ -110,8 +112,87 @@ export const authRouter = createTRPCRouter({
           name: input.name,
           email: input.email,
           password: hashedPassword,
+          emailVerified: null,
         },
       });
+
+      const verificationToken = jwt.sign(
+        {
+          id: user.id,
+          email: user.email,
+        },
+        `${env.NEXTAUTH_SECRET}`,
+        {
+          expiresIn: "1d",
+        }
+      );
+
+      await sendEmail(
+        input.email,
+        input.name,
+        `${env.NEXTAUTH_URL}/verify?token=${verificationToken}`,
+        "Welcome to the app"
+      );
+
+      return user;
+    }),
+  resendVerificationEmail: publicProcedure
+    .input(
+      z.object({
+        email: z.string(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      console.log("resendVerificationEmail");
+      const user = await ctx.prisma.user.findUnique({
+        where: {
+          email: input.email,
+        },
+      });
+      if (!user) {
+        throw new Error("User not found");
+      }
+      if (user.emailVerified) {
+        throw new Error("Email already verified");
+      }
+
+      const verificationToken = jwt.sign(
+        {
+          id: user.id,
+          email: user.email,
+        },
+        `${env.NEXTAUTH_SECRET}`,
+        {
+          expiresIn: "1d",
+        }
+      );
+
+      await sendEmail(
+        input.email,
+        user.name,
+        `${env.NEXTAUTH_URL}/verify?token=${verificationToken}`,
+        "Welcome to the app"
+      );
+    }),
+  verify: publicProcedure
+    .input(
+      z.object({
+        token: z.string(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { id } = jwt.verify(input.token, `${env.NEXTAUTH_SECRET}`) as {
+        id: string;
+      };
+      const user = await ctx.prisma.user.update({
+        where: {
+          id,
+        },
+        data: {
+          emailVerified: new Date(),
+        },
+      });
+
       return user;
     }),
 });
