@@ -37,7 +37,8 @@ export default function SignUp() {
         onSuccess: () => {
           toast.success("Account created successfully");
           toast.success("Check your email for a confirmation link");
-          signInFunction(email, password, router);
+
+          async () => await signInFunction(email, password, router);
         },
       }
     );

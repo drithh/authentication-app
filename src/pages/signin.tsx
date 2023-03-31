@@ -15,7 +15,6 @@ import type {
 import { getServerSession } from "next-auth";
 import { authOptions } from "~/server/auth";
 import { useState } from "react";
-import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import signInFunction from "~/components/signin";
 

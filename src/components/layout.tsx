@@ -5,7 +5,6 @@ import type { PropsWithChildren } from "react";
 
 const Layout = (props: PropsWithChildren) => {
   const { data: sessionData } = useSession();
-  console.log(sessionData);
   return (
     <>
       <Head>
