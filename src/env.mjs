@@ -27,6 +27,9 @@ const server = z.object({
   EMAIL_PORT: z.number().min(1),
   EMAIL_USERNAME: z.string().min(1),
   EMAIL_PASSWORD: z.string().min(1),
+
+  NEXT_PUBLIC_RECAPTCHA_SITE_KEY: z.string().min(1),
+  RECAPTCHA_SECRET_KEY: z.string().min(1),
 });
 
 /**
@@ -58,6 +61,8 @@ const processEnv = {
   EMAIL_PORT: parseInt(process.env.EMAIL_PORT),
   EMAIL_USERNAME: process.env.EMAIL_USERNAME,
   EMAIL_PASSWORD: process.env.EMAIL_PASSWORD,
+  NEXT_PUBLIC_RECAPTCHA_SITE_KEY: process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY,
+  RECAPTCHA_SECRET_KEY: process.env.RECAPTCHA_SECRET_KEY,
   // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
 };
 

@@ -28,6 +28,7 @@ specifiers:
   jsonwebtoken: ^9.0.0
   next: ^13.2.4
   next-auth: ^4.20.1
+  next-recaptcha-v3: ^1.1.5
   next-superjson-plugin: ^0.5.6
   nodemailer: ^6.9.1
   postcss: ^8.4.21
@@ -36,6 +37,7 @@ specifiers:
   prisma: ^4.11.0
   react: 18.2.0
   react-dom: 18.2.0
+  react-google-recaptcha-v3: ^1.9.7
   react-hot-toast: ^2.4.0
   react-icons: ^4.8.0
   react-otp-input: ^3.0.0
@@ -60,10 +62,12 @@ dependencies:
   jsonwebtoken: 9.0.0
   next: 13.2.4_biqbaboplfbrettd7655fr4n2y
   next-auth: 4.20.1_3tbpwx46tlrk4rci3doelizria
+  next-recaptcha-v3: 1.1.5_ld2jel3hspngo3u5lti2kgl2sq
   next-superjson-plugin: 0.5.6_75m7oggamdjnfhhmgkdxdhs2c4
   nodemailer: 6.9.1
   react: 18.2.0
   react-dom: 18.2.0_react@18.2.0
+  react-google-recaptcha-v3: 1.9.7_biqbaboplfbrettd7655fr4n2y
   react-hot-toast: 2.4.0_biqbaboplfbrettd7655fr4n2y
   react-icons: 4.8.0_react@18.2.0
   react-otp-input: 3.0.0_biqbaboplfbrettd7655fr4n2y
@@ -2989,6 +2993,22 @@ packages:
       uuid: 8.3.2
     dev: false
 
+  /next-recaptcha-v3/1.1.5_ld2jel3hspngo3u5lti2kgl2sq:
+    resolution: {integrity: sha512-CkhhGf4bSmy7/rnqOW9Wv55iO2tvZoOHvniDhVhX9hlBUmLTpEnQgnkc85ct9PyoBse6elQHUhzjg/c4z0yJbw==}
+    engines: {node: '>=16.0.0'}
+    peerDependencies:
+      next: '>=11.0.0'
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    peerDependenciesMeta:
+      react-dom:
+        optional: true
+    dependencies:
+      next: 13.2.4_biqbaboplfbrettd7655fr4n2y
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
+    dev: false
+
   /next-superjson-plugin/0.5.6_75m7oggamdjnfhhmgkdxdhs2c4:
     resolution: {integrity: sha512-vokzkgtr3axon5uXobhXJWN6/YlPOHdcAb/BeR+d0rXA3h1b5h98A+V0TgMUf+vcy9RvBqte/ppaJfkOwi4NGA==}
     peerDependencies:
@@ -3677,6 +3697,17 @@ packages:
       loose-envify: 1.4.0
       react: 18.2.0
       scheduler: 0.23.0
+    dev: false
+
+  /react-google-recaptcha-v3/1.9.7_biqbaboplfbrettd7655fr4n2y:
+    resolution: {integrity: sha512-LgHTuPUE86jGOtmMYMUWEYux8n7M2ZNj5GHct//DlXWZGyLIgFfLbvxA3UlgrG+tSu2pgw2mqXtYdPxaldqhWQ==}
+    peerDependencies:
+      react: ^17.0
+      react-dom: ^17.0
+    dependencies:
+      hoist-non-react-statics: 3.3.2
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
     dev: false
 
   /react-hot-toast/2.4.0_biqbaboplfbrettd7655fr4n2y:

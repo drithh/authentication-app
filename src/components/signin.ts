@@ -5,11 +5,13 @@ import toast from "react-hot-toast";
 const signInFunction = async (
   email: string,
   password: string,
+  token: string,
   router: AppRouterInstance
 ) => {
   const data = await signIn("credentials", {
     email,
     password,
+    recaptcha: token,
     redirect: false,
     callbackUrl: "/",
   });

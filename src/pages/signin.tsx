@@ -11,22 +11,26 @@ import type {
   GetServerSidePropsContext,
   InferGetServerSidePropsType,
 } from "next";
-import { getServerSession } from "next-auth";
-import { authOptions } from "~/server/auth";
-import { useState } from "react";
+import { getServerAuthSession } from "~/server/auth";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import signInFunction from "~/components/signin";
-
+import { useReCaptcha } from "next-recaptcha-v3";
 export default function SignIn({
   csrfToken,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    await signInFunction(email, password, router);
-  };
+  const { executeRecaptcha } = useReCaptcha();
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      const token = await executeRecaptcha("form_submit");
+      await signInFunction(email, password, token, router);
+    },
+    [executeRecaptcha, email, password, router]
+  );
 
   return (
     <>
@@ -56,6 +60,7 @@ export default function SignIn({
             onChange={(e) => setPassword((e.target as HTMLInputElement).value)}
           />
         </div>
+
         <Button type="submit">Sign in</Button>
         <div className="relative flex h-[2px] w-full place-content-center place-items-center bg-slate-200">
           <div className="absolute bg-white px-4">Or continue with</div>
@@ -81,7 +86,7 @@ export default function SignIn({
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   const csrfToken = await getCsrfToken(context);
-  const session = await getServerSession(context.req, context.res, authOptions);
+  const session = await getServerAuthSession(context);
 
   // If the user is already logged in, redirect.
   // Note: Make sure not to redirect to the same page

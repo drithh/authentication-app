@@ -1,9 +1,8 @@
-import { getServerSession } from "next-auth/next";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import type { GetServerSidePropsContext } from "next/types";
 import { useEffect, useState } from "react";
-import { authOptions } from "~/server/auth";
+import { getServerAuthSession } from "~/server/auth";
 import { GoTriangleDown } from "react-icons/go";
 import { type NextPage } from "next";
 import Button from "~/components/button";
@@ -153,7 +152,7 @@ const Profile: NextPage = () => {
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   return {
     props: {
-      session: await getServerSession(context.req, context.res, authOptions),
+      session: await getServerAuthSession(context),
     },
   };
 }

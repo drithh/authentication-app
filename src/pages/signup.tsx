@@ -7,14 +7,14 @@ import {
   AiOutlineTwitter,
 } from "react-icons/ai";
 import { api } from "~/utils/api";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { getCsrfToken, signIn } from "next-auth/react";
-import { getServerSession } from "next-auth";
 import type { GetServerSidePropsContext } from "next";
 import AuthButton from "~/components/auth-button";
-import { authOptions } from "~/server/auth";
+import { getServerAuthSession } from "~/server/auth";
 import { useRouter } from "next/navigation";
 import signInFunction from "~/components/signin";
+import { useReCaptcha } from "next-recaptcha-v3";
 
 export default function SignUp() {
   const [name, setName] = useState("");
@@ -22,27 +22,31 @@ export default function SignUp() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const router = useRouter();
-
+  const { executeRecaptcha } = useReCaptcha();
   const signUp = api.auth.signUp.useMutation();
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      const token = await executeRecaptcha("form_submit");
 
-    signUp.mutate(
-      { name, email, password, confirmPassword },
-      {
-        onError: (error) => {
-          toast.error(error.message);
-        },
-        onSuccess: () =>
-          void (async () => {
-            toast.success("Account created successfully");
-            toast.success("Check your email for a confirmation link");
+      signUp.mutate(
+        { name, email, password, confirmPassword },
+        {
+          onError: (error) => {
+            toast.error(error.message);
+          },
+          onSuccess: () =>
+            void (async () => {
+              toast.success("Account created successfully");
+              toast.success("Check your email for a confirmation link");
 
-            await signInFunction(email, password, router);
-          })(),
-      }
-    );
-  };
+              await signInFunction(email, password, token, router);
+            })(),
+        }
+      );
+    },
+    [executeRecaptcha, email, password, router, signUp, name, confirmPassword]
+  );
 
   return (
     <>
@@ -51,7 +55,9 @@ export default function SignUp() {
       </h1>
       <form
         method="post"
-        onSubmit={handleSubmit}
+        onSubmit={(e) => {
+          void handleSubmit(e);
+        }}
         className="flex w-[40rem] flex-col items-center justify-center gap-8 place-self-center border-y-2 border-slate-500 p-8"
       >
         <div className="mb-4 flex w-full flex-col gap-y-4">
@@ -110,7 +116,7 @@ export default function SignUp() {
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   const csrfToken = await getCsrfToken(context);
-  const session = await getServerSession(context.req, context.res, authOptions);
+  const session = await getServerAuthSession(context);
 
   // If the user is already logged in, redirect.
   // Note: Make sure not to redirect to the same page
