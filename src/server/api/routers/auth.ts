@@ -1,14 +1,17 @@
+import { protectedProcedure } from "./../trpc";
 import { z } from "zod";
-import { pwnedPassword } from "~/server/libs/pwned";
+import { pwnedPassword } from "~/libs/pwned";
 import {
   createTRPCRouter,
   publicProcedure,
   // protectedProcedure,
 } from "~/server/api/trpc";
 import bcrypt from "bcryptjs";
-import { sendEmail } from "~/server/libs/sendEmail";
+import { sendEmail } from "~/libs/send-email";
 import { env } from "~/env.mjs";
 import jwt from "jsonwebtoken";
+import { createTOTP, verifyTOTP } from "~/libs/totp";
+
 export const authRouter = createTRPCRouter({
   signUp: publicProcedure
     .input(
@@ -112,7 +115,7 @@ export const authRouter = createTRPCRouter({
           name: input.name,
           email: input.email,
           password: hashedPassword,
-          emailVerified: null,
+          verified: null,
         },
       });
 
@@ -143,7 +146,6 @@ export const authRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      console.log("resendVerificationEmail");
       const user = await ctx.prisma.user.findUnique({
         where: {
           email: input.email,
@@ -152,7 +154,7 @@ export const authRouter = createTRPCRouter({
       if (!user) {
         throw new Error("User not found");
       }
-      if (user.emailVerified) {
+      if (user.verified) {
         throw new Error("Email already verified");
       }
 
@@ -189,10 +191,60 @@ export const authRouter = createTRPCRouter({
           id,
         },
         data: {
-          emailVerified: new Date(),
+          verified: new Date(),
         },
       });
 
       return user;
+    }),
+  getTOTPUrl: publicProcedure
+    .input(
+      z.object({
+        email: z.string(),
+      })
+    )
+    .query(({ input }) => {
+      return createTOTP(input.email);
+    }),
+  toggleTOTP: protectedProcedure
+    .input(z.object({}))
+    .mutation(async ({ ctx }) => {
+      const { email } = ctx.session.user;
+      if (!email) throw new Error("Not logged in");
+      const user = await ctx.prisma.user.findUnique({
+        where: {
+          email,
+        },
+      });
+      const twoFactor = user?.twoFactor ?? false;
+      const updatedUser = await ctx.prisma.user.update({
+        where: {
+          email,
+        },
+        data: {
+          twoFactor: !twoFactor,
+        },
+      });
+
+      return updatedUser;
+    }),
+  verifyTOTP: protectedProcedure
+    .input(
+      z.object({
+        token: z.string(),
+      })
+    )
+    .mutation(({ input, ctx }) => {
+      const user = ctx.session.user;
+      if (!user || !user.email) {
+        throw new Error("Email is not registered");
+      }
+      const inputToken = input.token;
+
+      const data = verifyTOTP(user.email, inputToken);
+      if (!data) {
+        throw new Error("Invalid token");
+      }
+      return true;
     }),
 });

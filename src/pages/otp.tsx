@@ -2,12 +2,36 @@
 import Button from "~/components/button";
 import OtpInput from "react-otp-input";
 import { useState } from "react";
+import { signIn, signOut, useSession } from "next-auth/react";
+import { toast } from "react-hot-toast";
+import { useRouter } from "next/router";
 export default function OTP() {
+  const session = useSession();
+  const router = useRouter();
   const [otp, setOtp] = useState("");
   const handleChange = (enteredOtp: string) => {
     setOtp(enteredOtp);
   };
 
+  const handleSubmit = async () => {
+    const email = session.data?.user.email;
+    if (!email) {
+      toast.error("No email found");
+      return;
+    }
+    const result = await signIn("credentials2FA", {
+      email,
+      token: otp,
+      redirect: false,
+      callbackUrl: "/",
+    });
+    if (!result?.ok) {
+      toast.error(result?.error || "An error occurred");
+    } else {
+      toast.success("Signed in with 2FA");
+      void router.push("/profile");
+    }
+  };
   return (
     <>
       <h1 className="mb-8 text-center text-5xl font-bold uppercase tracking-tight text-slate-700">
@@ -39,14 +63,22 @@ export default function OTP() {
             renderInput={(props) => <input {...props} />}
           />
         </div>
-        <Button
-          type="submit"
-          onClick={() => {
-            console.log(otp);
-          }}
-        >
-          Submit
-        </Button>
+        <div className="flex w-full flex-col gap-y-2">
+          <Button
+            type="submit"
+            onClick={() => {
+              void handleSubmit();
+            }}
+          >
+            Submit
+          </Button>
+          <Button
+            type="button"
+            onClick={() => void signOut({ callbackUrl: "/" })}
+          >
+            Cancel Authentication
+          </Button>
+        </div>
       </div>
     </>
   );

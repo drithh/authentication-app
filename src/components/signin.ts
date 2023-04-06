@@ -8,19 +8,29 @@ const signInFunction = async (
   token: string,
   router: AppRouterInstance
 ) => {
-  const data = await signIn("credentials", {
-    email,
-    password,
-    recaptcha: token,
-    redirect: false,
-    callbackUrl: "/",
-  });
-  if (!data?.ok) {
-    toast.error(data?.error || "An error occurred");
-  } else {
-    toast.success("Signed in successfully");
-    // redirect to home page
-    router.push("/");
+  try {
+    const data = await signIn("credentials", {
+      email,
+      password,
+      recaptcha: token,
+      redirect: false,
+      callbackUrl: "/profile",
+    });
+    if (!data?.ok) {
+      toast.error(data?.error || "An error occurred");
+    } else {
+      toast.success("Signed in successfully");
+      // redirect to home page
+      router.push("/");
+    }
+  } catch (error: unknown) {
+    if (typeof error === "object" && error !== null && "message" in error) {
+      const errorMessage =
+        typeof error.message === "string" ? error.message : "An error occurred";
+      if (errorMessage === "Failed to construct 'URL': Invalid URL") {
+        router.push("/otp");
+      }
+    }
   }
 };
 

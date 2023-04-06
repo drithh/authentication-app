@@ -11,6 +11,7 @@ import { api } from "~/utils/api";
 import toast from "react-hot-toast";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { QRCodeSVG } from "qrcode.react";
 
 dayjs.extend(relativeTime);
 
@@ -21,12 +22,43 @@ const Profile: NextPage = () => {
     api.auth.resendVerificationEmail.useMutation();
   const { data: session } = useSession();
   const router = useRouter();
+  const [otpURL, setOtpURL] = useState("");
+  const mutateTOTP = api.auth.toggleTOTP.useMutation();
+  api.auth.getTOTPUrl.useQuery(
+    {
+      email: session?.user.email || "",
+    },
+    {
+      enabled: is2FA && !!session?.user.email,
+      onSuccess: (data) => {
+        setOtpURL(data);
+      },
+    }
+  );
 
   useEffect(() => {
     if (!session) {
       router.push("/signin");
     }
+    if (session) {
+      setIs2FA(session.user.twoFactor || false);
+    }
   }, [session, router]);
+  const toggle2FA = () => {
+    mutateTOTP.mutate(
+      {},
+      {
+        onError: (error) => {
+          toast.error(error.message);
+        },
+        onSuccess: () => {
+          const message = is2FA ? "2FA disabled" : "2FA enabled";
+          setIs2FA(!is2FA);
+          toast.success(message);
+        },
+      }
+    );
+  };
 
   if (!session) {
     return null;
@@ -53,8 +85,6 @@ const Profile: NextPage = () => {
     );
   };
 
-  console.log(session);
-
   return (
     <>
       <h1 className="my-8 mb-8 text-center text-5xl font-bold uppercase tracking-tight text-slate-700">
@@ -75,11 +105,9 @@ const Profile: NextPage = () => {
         </div>
         <div className="flex w-full place-content-between ">
           <p className="text-justify text-xl text-slate-700">Verified At:</p>
-          {session.user.emailVerified ? (
+          {session.user.verified ? (
             <p className="text-justify text-xl text-slate-700">
-              {/* convert emailverified to relative time */}
-              {dayjs(session.user.emailVerified).fromNow()}
-              {/* {session.user.emailVerified.toString()} */}
+              {dayjs(session.user.verified).fromNow()}
             </p>
           ) : (
             <div className="flex flex-col place-items-end">
@@ -99,7 +127,7 @@ const Profile: NextPage = () => {
             <button
               type="button"
               className=" flex place-items-center"
-              onClick={() => setIs2FA(!is2FA)}
+              onClick={toggle2FA}
             >
               <div className="relative mr-2 inline-block w-10 select-none align-middle transition duration-200 ease-in">
                 <input
@@ -107,7 +135,7 @@ const Profile: NextPage = () => {
                   name="toggle-user-address"
                   id="toggle-user-address"
                   checked={is2FA}
-                  onChange={() => setIs2FA(!is2FA)}
+                  readOnly
                   className={`${
                     is2FA ? "right-0 border-gray-500" : "border-gray-300"
                   } absolute block h-6 w-6 cursor-pointer appearance-none rounded-full border-4  bg-white`}
@@ -133,10 +161,9 @@ const Profile: NextPage = () => {
                 <GoTriangleDown className="text-xl" />
               </button>
               {show2FA && (
-                <p className="h-[40rem] border-2 border-slate-500 text-justify text-xl text-slate-700">
-                  {/* {session.user.twoFactorSecret} */}
-                  asd
-                </p>
+                <div className="w-full border-2 border-slate-500 p-8 text-justify text-xl text-slate-700">
+                  <QRCodeSVG value={otpURL} width={"100%"} height={"100%"} />
+                </div>
               )}
             </div>
           )}

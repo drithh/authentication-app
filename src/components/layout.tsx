@@ -1,10 +1,22 @@
 import Head from "next/head";
 import Link from "next/link";
 import { signIn, useSession } from "next-auth/react";
-import type { PropsWithChildren } from "react";
+import { type PropsWithChildren, useEffect } from "react";
+import { useRouter } from "next/router";
+import { toast } from "react-hot-toast";
 
 const Layout = (props: PropsWithChildren) => {
+  const router = useRouter();
   const { data: sessionData } = useSession();
+  // check if 2FA is enabled
+  useEffect(() => {
+    const hasPassed2FA = sessionData?.user?.hasPassed2FA;
+    if (router.pathname === "/otp" || hasPassed2FA !== false) return;
+    toast.error("Please verify your account");
+    void router.push("/otp");
+  }, [router, sessionData]);
+  // if not, redirect to 2FA page
+
   return (
     <>
       <Head>

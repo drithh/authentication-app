@@ -11,7 +11,7 @@ export async function sendEmail(
   subject: string
 ) {
   const __dirname = path.resolve();
-  const filePath = path.join(__dirname, "src/server/libs/email.html");
+  const filePath = path.join(__dirname, "src/libs/email.html");
   const source = fs.readFileSync(filePath, "utf-8").toString();
   const template = handlebars.compile(source);
   const replacements = {
@@ -20,8 +20,9 @@ export async function sendEmail(
   };
   const htmlToSend = template(replacements);
   const transporter = nodemailer.createTransport({
-    host: env.EMAIL_HOST,
-    port: env.EMAIL_PORT,
+    // host: env.EMAIL_HOST,
+    // port: parseInt(env.EMAIL_PORT),
+    service: "gmail",
     auth: {
       user: env.EMAIL_USERNAME,
       pass: env.EMAIL_PASSWORD,
@@ -35,5 +36,4 @@ export async function sendEmail(
   };
   const info = await transporter.sendMail(mailOptions);
   console.log("Message sent: %s", info.messageId);
-  // console.log("Preview URL: %s", "https://mailtrap.io/inboxes/test/messages/");
 }

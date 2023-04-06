@@ -1,4 +1,4 @@
-import { FC, FormEvent, useState } from "react";
+import { type FC, type FormEvent, useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 interface Props {
   type?: string;
@@ -38,7 +38,7 @@ const Input: FC<Props> = ({
       <input
         type={type === "password" && !showPassword ? "password" : "text"}
         readOnly={readOnly}
-        className="border-2 border-gray-500 py-2 px-4 outline-none"
+        className="border-2 border-gray-500 px-4 py-2 outline-none"
         name={name}
         placeholder={placeholder}
         required={required}

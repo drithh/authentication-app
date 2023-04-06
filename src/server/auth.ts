@@ -3,6 +3,7 @@ import {
   getServerSession,
   type NextAuthOptions,
   type DefaultSession,
+  type User,
 } from "next-auth";
 import GithubProvider from "next-auth/providers/github";
 import TwitterProvider from "next-auth/providers/twitter";
@@ -12,7 +13,8 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { env } from "~/env.mjs";
 import { prisma } from "~/server/db";
 import bcrypt from "bcryptjs";
-import validateRecaptcha from "./libs/validate-recaptcha";
+import validateRecaptcha from "../libs/validate-recaptcha";
+import { verifyTOTP } from "../libs/totp";
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
  * object and keep type safety.
@@ -23,17 +25,24 @@ declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
       id: string;
-      emailVerified: string | null;
+      verified: string | null;
+      twoFactor: boolean;
+      hasPassed2FA: boolean;
       // ...other properties
       // role: UserRole;
     } & DefaultSession["user"];
   }
 
-  // interface User {
-  //   emailVerified: string;
-  //   // ...other properties
-  //   // role: UserRole;
-  // }
+  interface User {
+    twoFactor: boolean;
+    hasPassed2FA: boolean;
+    // ...other properties
+    // role: UserRole;
+  }
+}
+
+interface UserSession extends User {
+  hasPassed2FA: boolean;
 }
 
 /**
@@ -51,6 +60,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.email = user.email;
         token.username = user.name;
+        token.hasPassed2FA = user.hasPassed2FA;
       }
       return token;
     },
@@ -60,20 +70,20 @@ export const authOptions: NextAuthOptions = {
           email: token.email as string,
         },
       });
-
       if (session?.user?.name && typeof token?.username === "string") {
+        const twoFactor = user?.twoFactor || false;
+        const hasPassed2FA = (token?.hasPassed2FA as boolean) || !twoFactor;
         session.user.name = token.username;
-        session.user.emailVerified = user?.emailVerified?.toString() || null;
+        session.user.verified = user?.verified?.toString() || null;
+        session.user.twoFactor = twoFactor;
+        session.user.hasPassed2FA = hasPassed2FA;
       }
-      console.table(session);
-      // console.table(token);
       return session;
     },
   },
 
   pages: {
     signIn: "/signin",
-    verifyRequest: "/verify-request", // (used for check email message)
   },
   adapter: PrismaAdapter(prisma),
   providers: [
@@ -97,8 +107,6 @@ export const authOptions: NextAuthOptions = {
         recaptcha: { label: "Recaptcha", type: "text" },
       },
       async authorize(credentials) {
-        // if failed password more than 3 times, lock account
-        // console.log(req.headers);
         if (
           !credentials ||
           !credentials.email ||
@@ -112,7 +120,6 @@ export const authOptions: NextAuthOptions = {
           const error = recaptcha["error-codes"]?.at(0) || "";
           throw new Error(`Invalid recaptcha ${error}`);
         }
-        console.log(recaptcha);
         const user = await prisma.user.findUnique({
           where: {
             email: credentials.email,
@@ -129,10 +136,48 @@ export const authOptions: NextAuthOptions = {
         );
 
         if (isPasswordCorrect) {
-          return user;
+          const sessionUser: UserSession = {
+            ...user,
+            hasPassed2FA: false,
+          };
+          return sessionUser;
         } else {
           throw new Error("Invalid password, try again");
         }
+      },
+    }),
+    CredentialsProvider({
+      id: "credentials2FA",
+      name: "credentials2FA",
+      credentials: {
+        email: { label: "Email", type: "text" },
+        token: { label: "Token", type: "text" },
+      },
+      async authorize(credentials) {
+        if (!credentials || !credentials.email || !credentials.token) {
+          throw new Error("Invalid credentials");
+        }
+
+        const user = await prisma.user.findUnique({
+          where: {
+            email: credentials.email,
+          },
+        });
+
+        if (!user || !user.email) {
+          throw new Error("Email is not registered");
+        }
+        const inputToken = credentials.token;
+
+        const data = verifyTOTP(user.email, inputToken);
+        if (!data) {
+          throw new Error("Invalid token");
+        }
+        const sessionUser: UserSession = {
+          ...user,
+          hasPassed2FA: true,
+        };
+        return sessionUser;
       },
     }),
 
@@ -158,6 +203,5 @@ export const getServerAuthSession = (ctx: {
   req: GetServerSidePropsContext["req"];
   res: GetServerSidePropsContext["res"];
 }) => {
-  // get ip address
   return getServerSession(ctx.req, ctx.res, authOptions);
 };
