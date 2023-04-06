@@ -23,5 +23,6 @@ const MyApp: AppType<{ session: Session | null }> = ({
     </SessionProvider>
   );
 };
+export { reportWebVitals } from "next-axiom";
 
 export default api.withTRPC(MyApp);

@@ -80,13 +80,17 @@ export const authRouter = createTRPCRouter({
           return true;
         })
         .refine(({ password, name }) => {
-          if (password.includes(name)) {
+          if (password.toLowerCase().includes(name.toLowerCase())) {
             throw new Error("Password must not contain your name");
           }
           return true;
         })
         .refine(({ password, email }) => {
-          if (password.includes(email)) {
+          // check if password contains some part of the email
+          const emailParts = email.split("@");
+          const emailName = emailParts[0] || "";
+
+          if (password.toLowerCase().includes(emailName.toLowerCase())) {
             throw new Error("Password must not contain your email");
           }
           return true;

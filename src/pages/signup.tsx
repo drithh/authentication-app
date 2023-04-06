@@ -15,6 +15,7 @@ import { getServerAuthSession } from "~/server/auth";
 import { useRouter } from "next/navigation";
 import signInFunction from "~/components/signin";
 import { useReCaptcha } from "next-recaptcha-v3";
+import { log } from "next-axiom";
 
 export default function SignUp() {
   const [name, setName] = useState("");
@@ -37,6 +38,7 @@ export default function SignUp() {
           },
           onSuccess: () =>
             void (async () => {
+              log.debug("signUp.mutate.onSuccess", { name, email });
               toast.success("Account created successfully");
               toast.success("Check your email for a confirmation link");
 

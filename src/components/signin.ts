@@ -24,13 +24,7 @@ const signInFunction = async (
       router.push("/");
     }
   } catch (error: unknown) {
-    if (typeof error === "object" && error !== null && "message" in error) {
-      const errorMessage =
-        typeof error.message === "string" ? error.message : "An error occurred";
-      if (errorMessage === "Failed to construct 'URL': Invalid URL") {
-        router.push("/otp");
-      }
-    }
+    console.error(error);
   }
 };
 
