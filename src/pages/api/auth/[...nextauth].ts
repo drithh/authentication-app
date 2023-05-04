@@ -27,18 +27,20 @@ export default async function auth(req: NextApiRequest, res: NextApiResponse) {
   // const res = await ipRateLimit(req);
   // If the status is not 200 then it has been rate limited.
   // if (res.status !== 200) return res;
-  const identifier = getClientIp(req) ?? "api";
-  const result = await ratelimit.limit(identifier);
+  if (env.NODE_ENV == "production") {
+    const identifier = getClientIp(req) ?? "api";
+    const result = await ratelimit.limit(identifier);
 
-  res.setHeader("X-RateLimit-Limit", result.limit);
-  res.setHeader("X-RateLimit-Remaining", result.remaining);
+    res.setHeader("X-RateLimit-Limit", result.limit);
+    res.setHeader("X-RateLimit-Remaining", result.remaining);
 
-  if (!result.success) {
-    res.status(429).json({
-      message: "The request has been rate limited.",
-      rateLimitState: result,
-    });
-    return res.end();
+    if (!result.success) {
+      res.status(429).json({
+        message: "The request has been rate limited.",
+        rateLimitState: result,
+      });
+      return res.end();
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return

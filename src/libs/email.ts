@@ -3,6 +3,29 @@ import handlebars from "handlebars";
 import fs from "fs";
 import path from "path";
 import { env } from "~/env.mjs";
+import jwt from "jsonwebtoken";
+import { User } from "@prisma/client";
+
+interface getVerificationTokenProps {
+  email: string;
+  id: string;
+}
+
+export const getVerificationToken = ({
+  email,
+  id,
+}: getVerificationTokenProps) => {
+  return jwt.sign(
+    {
+      id: id,
+      email: email,
+    },
+    `${env.NEXTAUTH_SECRET}`,
+    {
+      expiresIn: "1d",
+    }
+  );
+};
 
 export async function sendEmail(
   email: string,
@@ -10,6 +33,10 @@ export async function sendEmail(
   url: string,
   subject: string
 ) {
+  if (env.NODE_ENV === "test") {
+    return;
+  }
+
   const __dirname = path.resolve();
   const filePath = path.join(__dirname, "src/libs/email.html");
   const source = fs.readFileSync(filePath, "utf-8").toString();

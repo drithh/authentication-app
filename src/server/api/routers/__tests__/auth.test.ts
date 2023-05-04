@@ -1,10 +1,16 @@
-import { getCsrfToken } from "next-auth/react";
+import { getCSRFCookie } from "./../../../../tests/helpers/util";
+import { getCsrfToken, signIn, getSession } from "next-auth/react";
 import { type inferProcedureInput } from "@trpc/server";
 import { createInnerTRPCContext } from "~/server/api/trpc";
 import { appRouter, type AppRouter } from "~/server/api/root";
 import { describe, expect, it, test } from "vitest";
 import { env } from "~/env.mjs";
 import axios from "axios";
+import { getServerSession } from "next-auth";
+import { getServerAuthSession } from "~/server/auth";
+import { request } from "~/tests/helpers/util";
+import { getTOTPValue } from "~/libs/totp";
+import { getVerificationToken } from "~/libs/email";
 const BASE_URL = env.NEXTAUTH_URL;
 
 describe("Register", () => {
@@ -188,39 +194,243 @@ describe("Register", () => {
 describe("Login", async () => {
   const ctx = createInnerTRPCContext({ session: null });
   const caller = appRouter.createCaller(ctx);
+
   const defaultProfile = {
     name: "Cartman",
     email: "cartman@fat.com",
     password: "HahaKewl12,",
     confirmPassword: "HahaKewl12,",
   };
-  // const token = await getCsrfToken();
-  const token =
-    "9df40ead9e6c664889c9bf857647e291f7c7cee2c46ff0a5ab7f2e61b02f4091";
+
+  const cookie = (await getCSRFCookie()) ?? "";
+  const csrf = cookie.split("next-auth.csrf-token=")[1]?.split("%7")[0];
+
+  const defaultOptions = {
+    method: "post",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Cookie: cookie,
+    },
+  } as RequestInit;
+
+  const defaultBody = {
+    callbackUrl: "/profile",
+    json: true,
+    recaptcha: "recaptchaToken",
+    csrfToken: csrf,
+  };
+
   test("Login with correct email and password", async () => {
     await caller.auth.signUp({
       ...defaultProfile,
     });
-    const response = await axios.post(
-      `${BASE_URL}/api/auth/callback/credentials?`,
-      {
+
+    const response = await request("api/auth/callback/credentials?", {
+      ...defaultOptions,
+      // @ts-expect-error
+      body: new URLSearchParams({
         email: defaultProfile.email,
         password: defaultProfile.password,
-        callbackUrl: "/profile",
-        json: true,
-        recaptchaToken: "recaptchaToken",
-        csrfToken: token,
-      },
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Cookie: `next-auth.csrf-token=9df40ead9e6c664889c9bf857647e291f7c7cee2c46ff0a5ab7f2e61b02f4091%7Cd6edf4cc46e01fe822445153a7988eab9f2ffe480d76fb529f40d9af346c89a0; next-auth.callback-url=http%3A%2F%2Flocalhost%3A3000%2Fprofile`,
-        },
-      }
-    );
-
-    expect(response.data).toEqual({
-      token: token,
+        ...defaultBody,
+      }),
     });
+
+    expect(await response.json()).toEqual({
+      url: `${BASE_URL}/profile`,
+    });
+  });
+
+  test("Login with incorrect email", async () => {
+    await caller.auth.signUp({
+      ...defaultProfile,
+    });
+
+    const response = await request("api/auth/callback/credentials?", {
+      ...defaultOptions,
+      // @ts-expect-error
+      body: new URLSearchParams({
+        email: "cartman@notfat.com",
+        password: defaultProfile.password,
+        ...defaultBody,
+      }),
+    });
+
+    expect(await response.json()).toEqual({
+      url: `${BASE_URL}/api/auth/error?error=Email%20is%20not%20registered`,
+    });
+  });
+
+  test("Login with incorrect password", async () => {
+    await caller.auth.signUp({
+      ...defaultProfile,
+    });
+
+    const response = await request("api/auth/callback/credentials?", {
+      ...defaultOptions,
+      // @ts-expect-error
+      body: new URLSearchParams({
+        email: defaultProfile.email,
+        password: "HahaKewl123,",
+        ...defaultBody,
+      }),
+    });
+
+    expect(await response.json()).toEqual({
+      url: `${BASE_URL}/api/auth/error?error=Invalid%20password%2C%20try%20again`,
+    });
+  });
+});
+
+describe("Two Factor Authentication", async () => {
+  const defaultProfile = {
+    name: "Cartman",
+    email: "cartman@fat.com",
+    password: "HahaKewl12,",
+    confirmPassword: "HahaKewl12,",
+  };
+  const publicCtx = createInnerTRPCContext({
+    session: null,
+  });
+  const publicCaller = appRouter.createCaller(publicCtx);
+
+  const protectedCtx = createInnerTRPCContext({
+    session: {
+      user: {
+        id: "1",
+        name: defaultProfile.name,
+        email: defaultProfile.email,
+        image: null,
+        verified: null,
+        hasPassed2FA: false,
+        twoFactor: true,
+      },
+      expires: "2021-08-12T08:00:00.000Z",
+    },
+  });
+  const protectedCaller = appRouter.createCaller(protectedCtx);
+
+  test("Toggle 2FA", async () => {
+    await publicCaller.auth.signUp({
+      ...defaultProfile,
+    });
+    const response = protectedCaller.auth.toggleTOTP({});
+
+    test("Get 2FA QR Code", async () => {
+      const response = protectedCaller.auth.getTOTPUrl({
+        email: defaultProfile.email,
+      });
+      expect(await response).toMatchObject({
+        url: expect.stringContaining("otpauth://totp/"),
+      });
+    });
+
+    expect(await response).toMatchObject({
+      id: expect.any(String),
+      name: defaultProfile.name,
+      email: defaultProfile.email,
+      password: expect.any(String),
+      image: null,
+      verified: null,
+      twoFactor: true,
+    });
+  });
+
+  test("Toggle 2FA without session", async () => {
+    const response = publicCaller.auth.toggleTOTP({});
+    expect(response).rejects.toThrowError(/UNAUTHORIZED/);
+  });
+
+  test("Verify 2FA with correct code", async () => {
+    const totp = getTOTPValue(defaultProfile.email);
+
+    const response = protectedCaller.auth.verifyTOTP({
+      token: totp,
+    });
+
+    expect(await response).toEqual(true);
+  });
+
+  test("Verify 2FA with incorrect code", async () => {
+    const response = protectedCaller.auth.verifyTOTP({
+      token: `123456`,
+    });
+
+    expect(response).rejects.toThrowError(/Invalid token/);
+  });
+});
+
+describe("Account Verification", async () => {
+  const defaultProfile = {
+    name: "Cartman",
+    email: "cartman@fat.com",
+    password: "HahaKewl12,",
+    confirmPassword: "HahaKewl12,",
+  };
+
+  const publicCtx = createInnerTRPCContext({
+    session: null,
+  });
+  const publicCaller = appRouter.createCaller(publicCtx);
+
+  const protectedCtx = createInnerTRPCContext({
+    session: {
+      user: {
+        id: "1",
+        name: defaultProfile.name,
+        email: defaultProfile.email,
+        image: null,
+        verified: null,
+        hasPassed2FA: false,
+        twoFactor: true,
+      },
+      expires: "2021-08-12T08:00:00.000Z",
+    },
+  });
+  const protectedCaller = appRouter.createCaller(protectedCtx);
+
+  test("Send verification email", async () => {
+    await publicCaller.auth.signUp({
+      ...defaultProfile,
+    });
+
+    const response = protectedCaller.auth.resendVerificationEmail({
+      email: defaultProfile.email,
+    });
+
+    expect(await response).toEqual("Email sent");
+  });
+
+  test("Verify account with correct code", async () => {
+    await publicCaller.auth.signUp({
+      ...defaultProfile,
+    });
+
+    const code = getVerificationToken({
+      id: "1",
+      email: defaultProfile.email,
+    });
+
+    const response = publicCaller.auth.verify({
+      token: code,
+    });
+
+    expect(await response).toMatchObject({
+      id: expect.any(String),
+      name: defaultProfile.name,
+      email: defaultProfile.email,
+      image: null,
+      password: expect.any(String),
+      verified: expect.any(Date),
+      emailVerified: null,
+      twoFactor: false,
+    });
+  });
+
+  test("Verify account with incorrect code", async () => {
+    const response = publicCaller.auth.verify({
+      token: "123",
+    });
+
+    expect(response).rejects.toThrowError(/jwt malformed/);
   });
 });

@@ -54,6 +54,7 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
   },
+
   callbacks: {
     jwt: ({ token, user }) => {
       if (user && user.email && user.name) {
@@ -116,7 +117,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid credentials");
         }
         const recaptcha = await validateRecaptcha(credentials.recaptcha);
-        if (recaptcha.success === false) {
+        if (recaptcha.success === false && env.NODE_ENV === "test") {
           const error = recaptcha["error-codes"]?.at(0) || "";
           throw new Error(`Invalid recaptcha ${error}`);
         }

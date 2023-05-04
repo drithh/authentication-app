@@ -7,7 +7,7 @@ import {
   // protectedProcedure,
 } from "~/server/api/trpc";
 import bcrypt from "bcryptjs";
-import { sendEmail } from "~/libs/send-email";
+import { getVerificationToken, sendEmail } from "~/libs/email";
 import { env } from "~/env.mjs";
 import jwt from "jsonwebtoken";
 import { createTOTP, verifyTOTP } from "~/libs/totp";
@@ -123,16 +123,7 @@ export const authRouter = createTRPCRouter({
         },
       });
 
-      const verificationToken = jwt.sign(
-        {
-          id: user.id,
-          email: user.email,
-        },
-        `${env.NEXTAUTH_SECRET}`,
-        {
-          expiresIn: "1d",
-        }
-      );
+      const verificationToken = getVerificationToken(user);
 
       await sendEmail(
         input.email,
@@ -162,16 +153,7 @@ export const authRouter = createTRPCRouter({
         throw new Error("Email already verified");
       }
 
-      const verificationToken = jwt.sign(
-        {
-          id: user.id,
-          email: user.email,
-        },
-        `${env.NEXTAUTH_SECRET}`,
-        {
-          expiresIn: "1d",
-        }
-      );
+      const verificationToken = getVerificationToken(user);
 
       await sendEmail(
         input.email,
@@ -179,6 +161,7 @@ export const authRouter = createTRPCRouter({
         `${env.NEXTAUTH_URL}/verify?token=${verificationToken}`,
         "Welcome to the app"
       );
+      return "Email sent";
     }),
   verify: publicProcedure
     .input(
@@ -187,12 +170,12 @@ export const authRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const { id } = jwt.verify(input.token, `${env.NEXTAUTH_SECRET}`) as {
-        id: string;
+      const { email } = jwt.verify(input.token, `${env.NEXTAUTH_SECRET}`) as {
+        email: string;
       };
       const user = await ctx.prisma.user.update({
         where: {
-          id,
+          email,
         },
         data: {
           verified: new Date(),

@@ -14,6 +14,11 @@ const getTOTP = (email: string) => {
   return token;
 };
 
+export const getTOTPValue = (email: string) => {
+  const totp = getTOTP(email);
+  return totp.generate();
+};
+
 export const createTOTP = (email: string) => {
   const totp = getTOTP(email);
   return totp.toString();
