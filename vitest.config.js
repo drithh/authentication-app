@@ -6,12 +6,13 @@ export default defineConfig({
     exclude: [...configDefaults.exclude],
     testTimeout: 20000,
     setupFiles: ["src/tests/helpers/setup.ts"],
-    include: ["src/**/*.test.ts", "!src/tests"],
-    reporters: ["verbose"],
+    include: ["src/**/*.test.ts"],
+    reporters: ["default", "html"],
     coverage: {
       provider: "c8",
       reporter: ["text", "json", "html"],
     },
+    api: 5000,
   },
   resolve: {
     alias: {
