@@ -1,4 +1,4 @@
-import { getCSRFCookie } from "./../../../../tests/helpers/util";
+import { getCSRFCookie } from "~/tests/helpers/util";
 import { getCsrfToken, signIn, getSession } from "next-auth/react";
 import { type inferProcedureInput } from "@trpc/server";
 import { createInnerTRPCContext } from "~/server/api/trpc";
