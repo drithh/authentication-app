@@ -33,7 +33,7 @@ export async function sendEmail(
   url: string,
   subject: string
 ) {
-  if (env.NODE_ENV === "test") {
+  if (env.APP_ENV === "test") {
     return;
   }
 

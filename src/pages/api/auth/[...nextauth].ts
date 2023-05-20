@@ -27,7 +27,7 @@ export default async function auth(req: NextApiRequest, res: NextApiResponse) {
   // const res = await ipRateLimit(req);
   // If the status is not 200 then it has been rate limited.
   // if (res.status !== 200) return res;
-  if (env.NODE_ENV == "production") {
+  if (env.APP_ENV == "production") {
     const identifier = getClientIp(req) ?? "api";
     const result = await ratelimit.limit(identifier);
 
