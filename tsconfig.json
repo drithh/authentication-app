@@ -31,5 +31,5 @@
     "**/*.mjs",
     "express/index.js"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "express/index.js"]
 }

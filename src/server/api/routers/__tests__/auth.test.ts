@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { getCSRFCookie } from "~/tests/helpers/util";
 import { getCsrfToken, signIn, getSession } from "next-auth/react";
 import { type inferProcedureInput } from "@trpc/server";

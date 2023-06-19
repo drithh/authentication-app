@@ -243,6 +243,7 @@ export const authRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       const users = (await ctx.prisma.$queryRawUnsafe(
         `SELECT * FROM "User" WHERE email = '${input.email}'`
       )) as User[];
