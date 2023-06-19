@@ -74,10 +74,10 @@ export default function SignIn({
             icon={<AiOutlineGithub className="text-2xl" />}
             onClick={() => void signIn("github")}
           />
-          <AuthButton
+          {/* <AuthButton
             icon={<AiOutlineTwitter className="text-2xl" />}
             onClick={() => void signIn("twitter")}
-          />
+          /> */}
         </div>
       </form>
     </>
