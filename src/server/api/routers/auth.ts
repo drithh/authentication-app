@@ -11,6 +11,7 @@ import { getVerificationToken, sendEmail } from "~/libs/email";
 import { env } from "~/env.mjs";
 import jwt from "jsonwebtoken";
 import { createTOTP, verifyTOTP } from "~/libs/totp";
+import { User } from "@prisma/client";
 
 export const authRouter = createTRPCRouter({
   signUp: publicProcedure
@@ -233,5 +234,36 @@ export const authRouter = createTRPCRouter({
         throw new Error("Invalid token");
       }
       return true;
+    }),
+  unsafeSignIn: publicProcedure
+    .input(
+      z.object({
+        email: z.string(),
+        password: z.string(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const users = (await ctx.prisma.$queryRawUnsafe(
+        `SELECT * FROM "User" WHERE email = '${input.email}'`
+      )) as User[];
+      if (users.length === 0) {
+        throw new Error("Invalid credentials");
+      }
+      const user = users[0];
+      if (!user) {
+        throw new Error("Invalid credentials");
+      }
+      const passwordMatch = await bcrypt.compare(
+        input.password,
+        user.password ?? ""
+      );
+
+      if (!passwordMatch) {
+        throw new Error("Invalid credentials");
+      }
+
+      return {
+        message: "Logged in",
+      };
     }),
 });
