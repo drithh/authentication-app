@@ -117,7 +117,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid credentials");
         }
         const recaptcha = await validateRecaptcha(credentials.recaptcha);
-        if (recaptcha.success === false && env.APP_ENV === "test") {
+        if (recaptcha.success === false && env.APP_ENV !== "test") {
           const error = recaptcha["error-codes"]?.at(0) || "";
           throw new Error(`Invalid recaptcha ${error}`);
         }

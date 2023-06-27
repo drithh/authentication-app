@@ -39,11 +39,11 @@ app.post("/login", async (req, res) => {
         res.status(200).send({ message: "login berhasil" });
       } else {
         // password salah
-        res.status(200).send({ message: "password salah" });
+        res.status(404).send({ message: "password salah" });
       }
     } else {
       // Jika tidak ada user dengan email tersebut
-      res.status(200).send({ message: "email tidak terdaftar" });
+      res.status(404).send({ message: "email tidak terdaftar" });
     }
   } catch (error) {
     // jika parameter yang dikirimkan tidak valid
